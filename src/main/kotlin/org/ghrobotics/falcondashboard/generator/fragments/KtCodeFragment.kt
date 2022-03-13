@@ -18,7 +18,7 @@ import java.text.DecimalFormat
 class KtCodeFragment : Fragment() {
     override val root = vbox {
 
-        title = "Generated Code"
+        title = "Generated Kotlin Code"
 
         style {
             padding = box(1.em)

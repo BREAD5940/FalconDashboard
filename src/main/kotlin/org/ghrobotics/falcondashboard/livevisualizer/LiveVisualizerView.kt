@@ -9,6 +9,7 @@ import javafx.stage.StageStyle
 import kfoenix.jfxtextfield
 import org.ghrobotics.falcondashboard.Settings
 import org.ghrobotics.falcondashboard.livevisualizer.charts.FieldChart
+import org.ghrobotics.lib.wrappers.networktables.FalconNetworkTable
 import tornadofx.*
 
 class LiveVisualizerView : View() {
@@ -25,11 +26,7 @@ class LiveVisualizerView : View() {
                 setOnKeyPressed {
                     if (it.code == KeyCode.ENTER) {
                         Settings.ip.set(this@jfxtextfield.text)
-                        object : Fragment() {
-                            override val root = vbox {
-                                text("Please Restart Falcon Dashboard for changes to take effect.")
-                            }
-                        }.openModal(stageStyle = StageStyle.UTILITY)
+                        FalconNetworkTable.getTable("Live_Dashboard").instance.startClient(Settings.ip.value)
                     }
                 }
             }

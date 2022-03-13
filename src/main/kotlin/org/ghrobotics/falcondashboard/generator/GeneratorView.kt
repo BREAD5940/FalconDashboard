@@ -27,6 +27,7 @@ import org.ghrobotics.falcondashboard.createNumericalEntry
 import org.ghrobotics.falcondashboard.generator.charts.PositionChart
 import org.ghrobotics.falcondashboard.generator.charts.VelocityChart
 import org.ghrobotics.falcondashboard.generator.fragments.CodeFragment
+import org.ghrobotics.falcondashboard.generator.fragments.JavaCodeFragment
 import org.ghrobotics.falcondashboard.generator.fragments.KtCodeFragment
 import org.ghrobotics.falcondashboard.generator.fragments.WaypointFragment
 import org.ghrobotics.falcondashboard.generator.tables.WaypointsTable
@@ -120,7 +121,7 @@ class GeneratorView : View() {
                                     prefWidth = 290.0
                                     text = "Load from text"
                                     action {
-                                        WaypointsTable.loadFromText(textEntryArea.text)
+                                        WaypointsTable.loadFromString(textEntryArea.text)
                                     }
                                 }
                             }
@@ -134,11 +135,20 @@ class GeneratorView : View() {
                         find<CodeFragment>().openModal(stageStyle = StageStyle.UTILITY)
                     }
                 }
-                jfxbutton {
-                    prefWidth = 290.0
-                    text = "Generate Code"
-                    action {
-                        find<KtCodeFragment>().openModal(stageStyle = StageStyle.UTILITY)
+                hbox {
+                    jfxbutton {
+                        prefWidth = 290.0 / 2
+                        text = "Java"
+                        action {
+                            find<JavaCodeFragment>().openModal(stageStyle = StageStyle.UTILITY)
+                        }
+                    }
+                    jfxbutton {
+                        prefWidth = 290.0 / 2
+                        text = "Kotlin"
+                        action {
+                            find<KtCodeFragment>().openModal(stageStyle = StageStyle.UTILITY)
+                        }
                     }
                 }
             }

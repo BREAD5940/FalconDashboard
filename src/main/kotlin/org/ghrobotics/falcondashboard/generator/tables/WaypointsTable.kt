@@ -17,22 +17,24 @@ import org.ghrobotics.lib.mathematics.twodim.geometry.Translation2d
 import org.ghrobotics.lib.mathematics.twodim.geometry.x_u
 import org.ghrobotics.lib.mathematics.twodim.geometry.y_u
 import org.ghrobotics.lib.mathematics.units.derived.degrees
+import org.ghrobotics.lib.mathematics.units.derived.radians
 import org.ghrobotics.lib.mathematics.units.feet
 import org.ghrobotics.lib.mathematics.units.inFeet
+import org.ghrobotics.lib.mathematics.units.meters
 import tornadofx.column
 import kotlin.math.round
 
 object WaypointsTable : TableView<Pose2d>(GeneratorView.waypoints) {
 
-    private val columnX = column<Pose2d, Double>("X") {
+    private val columnX = column<Pose2d, Double>("X (ft)") {
         SimpleObjectProperty(round(it.value.translation.x_u.inFeet() * 1E3) / 1E3)
     }
 
-    private val columnY = column<Pose2d, Double>("Y") {
+    private val columnY = column<Pose2d, Double>("Y (ft)") {
         SimpleObjectProperty(round(it.value.translation.y_u.inFeet() * 1E3) / 1E3)
     }
 
-    private val columnAngle = column<Pose2d, Double>("Angle") {
+    private val columnAngle = column<Pose2d, Double>("θ (deg)") {
         SimpleObjectProperty(round(it.value.rotation.degrees))
     }
 
@@ -133,23 +135,57 @@ object WaypointsTable : TableView<Pose2d>(GeneratorView.waypoints) {
         }
     }
 
-    fun loadFromText(text: String) {
+    fun loadFromString(text: String) {
+        return if (text.contains("new Pose2d")) loadFromJava(text) else loadFromKotlin(text)
+    }
+
+    private fun loadFromJava(text: String) {
         val lines = text.lines()
 
-        val poses: List<Pose2d?> = lines.map {
-            if(it.isEmpty()) return@map null
+        val poses: List<Pose2d?> = lines.map { it ->
+            if (it.isEmpty()) return@map null
+            // Only get lines that start with "new Pose2d"
             var trim = it
                 .replace(" ", "")
-                .let { it2 -> if(it2.last() == ',') it2.substring(0, it2.length - 1) else it2 }
-                .let { it2 -> if(!it2.startsWith("Pose2d", true)) null else it2 } ?: return@map null
+                .let { it2 -> if (!it2.startsWith("newPose2d", true)) null else it2 } ?: return@map null
 
             // so at this point all of our text starts with Pose2d and ends with a closing paren.
             // start by removing the starting and closing parenthesis
 
-            trim = trim.substring(7, trim.length- 1)
+            trim = trim.removePrefix("newPose2d(").removeSuffix(")")
+            val commaSeperated: List<String> = trim.split(",")
+            val x = commaSeperated[0].toDouble();
+            val y = commaSeperated[1].toDouble();
+
+            // At this point we have "new Rotation2d(foo)"
+            val theta = commaSeperated[2].removePrefix("newRotation2d(").replace(")", "")
+                .toDouble()
+
+            val pose = Pose2d(x.meters, y.meters, theta.radians)
+            pose
+        }
+
+        if(poses.filterNotNull().isNotEmpty())
+            GeneratorView.waypoints.setAll(poses.filterNotNull())
+    }
+
+    private fun loadFromKotlin(text: String) {
+        val lines = text.lines()
+
+        val poses: List<Pose2d?> = lines.map {
+            if (it.isEmpty()) return@map null
+            var trim = it
+                .replace(" ", "")
+                .let { it2 -> if (it2.last() == ',') it2.substring(0, it2.length - 1) else it2 }
+                .let { it2 -> if (!it2.startsWith("Pose2d", true)) null else it2 } ?: return@map null
+
+            // so at this point all of our text starts with Pose2d and ends with a closing paren.
+            // start by removing the starting and closing parenthesis
+
+            trim = trim.substring(7, trim.length - 1)
             val x = trim.substring(0, trim.indexOf(".feet"))
                 .let { it2 ->
-                    if(it2.startsWith("(") || it2.endsWith(")")) {
+                    if (it2.startsWith("(") || it2.endsWith(")")) {
                         return@let it2.substring(1, it2.length - 1)
                     } else it2
                 }
@@ -157,7 +193,7 @@ object WaypointsTable : TableView<Pose2d>(GeneratorView.waypoints) {
             val trimNoX = trim.substring(trim.indexOf(".feet") + 6, trim.length)
             val y = trimNoX.substring(0, trimNoX.indexOf(".feet"))
                 .let { it2 ->
-                    if(it2.startsWith("(") || it2.endsWith(")")) {
+                    if (it2.startsWith("(") || it2.endsWith(")")) {
                         return@let it2.substring(1, it2.length - 1)
                     } else it2
                 }
@@ -165,10 +201,10 @@ object WaypointsTable : TableView<Pose2d>(GeneratorView.waypoints) {
             val trimNoY = trimNoX.substring(trimNoX.indexOf(".feet") + 6, trimNoX.length)
             val theta: Double = trimNoY.let { noY ->
                 val index: Int = noY.indexOf(".degrees").let { ret ->
-                    if(ret < 0) noY.indexOf(".degree") else ret
+                    if (ret < 0) noY.indexOf(".degree") else ret
                 }
                 val numberWithMaybeParens = noY.substring(0, index)
-                if(numberWithMaybeParens.startsWith("(") || numberWithMaybeParens.endsWith(")")) {
+                if (numberWithMaybeParens.startsWith("(") || numberWithMaybeParens.endsWith(")")) {
                     return@let numberWithMaybeParens.substring(1, numberWithMaybeParens.length - 1).toDouble()
                 }
                 return@let numberWithMaybeParens.toDouble()
